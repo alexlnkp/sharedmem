@@ -38,7 +38,7 @@ int main() {
 
     /* create a unique key for the shared memory */
     key_t key = shared_mem_create_key("shmfile", 65); /* create a unique key */
-    shm = shared_mem_init(key);
+    shm = shared_mem_init(key, 0b110100000);
 
     shared_mem_create(shm, sizeof(struct SharedData)); /* create shared memory */
 

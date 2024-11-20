@@ -14,6 +14,8 @@
     typedef const char* key_t;
   #endif
 
+  #define SM_DEFAULT_PERM SM_MODE_FULL_ACCESS
+
 #elif defined(__unix__) || defined(unix)
   /* maybe better to replace this to #define IS_LINUX 1
    * so that i can do #if IS_LINUX instead of #ifdef IS_LINUX */
@@ -29,10 +31,13 @@
     typedef int key_t;
   #endif
 
+  #define SM_DEFAULT_PERM 0b110000000 /* -rw------- */
+
 #endif
 
 typedef struct _st_shared_mem shared_mem_t;
 
+/* TODO: make generic modes that will THEN be transformed to linux or windows modes */
 enum shared_mem_modes {
     SM_MODE_QUERY       = 1 << 0,
     SM_MODE_WRITE       = 1 << 1,
@@ -51,7 +56,7 @@ enum shared_mem_modes {
 
 key_t shared_mem_create_key(const char* name, int id);
 
-shared_mem_t *shared_mem_init(key_t key);
+shared_mem_t *shared_mem_init(key_t key, int permissions);
 void shared_mem_get(shared_mem_t* shm, size_t size);
 void shared_mem_create(shared_mem_t* shm, size_t size);
 void shared_mem_remove(shared_mem_t* shm);
@@ -66,10 +71,7 @@ struct _st_shared_mem {
     key_t key;
     size_t size;
     void* data;
-    int perm; /* TODO: make permissions work. WILL be hard af because of fucking windows.
-               * ultimately will boil down to making API work with both posix octal perms
-               * and windows' PAGE_'s and FILE_MAP_'s interop... why the fuck did they do
-               * it the way they did??? what the fuck were they thinking??? */
+    int perm;
 };
 
 key_t shared_mem_create_key(const char* name, int id) {
@@ -84,11 +86,13 @@ key_t shared_mem_create_key(const char* name, int id) {
     return key;
 }
 
-shared_mem_t *shared_mem_init(key_t key) {
+shared_mem_t *shared_mem_init(key_t key, int permissions) {
     shared_mem_t *shm = malloc(sizeof(shared_mem_t));
     shm->key = key;
     shm->id = 0;
     shm->size = 0;
+
+    shm->perm = permissions;
 
     return shm;
 }
@@ -96,37 +100,39 @@ shared_mem_t *shared_mem_init(key_t key) {
 void shared_mem_get(shared_mem_t* shm, size_t size) {
     shm->size = size; /* setting size for windows (it will use it later) */
 
-    /* TODO: rights are too elevated. need for user to manage instead.
-     * implement `int perm` from _st_shared_mem ASAP */
-  #if defined(IS_LINUX)
-    shm->id = shmget(shm->key, shm->size, 0666);
-  #elif defined(IS_WINDOWS)
-    shm->id = OpenFileMapping(
-        SM_MODE_FULL_ACCESS, /* Read access */
-        FALSE,               /* Do not inherit the name */
-        shm->key             /* Name of the mapping object */
-    );
+    /* TODO: fix a bug where if you restart the sender on linux, the reader doesn't notice
+     * and still prints the last value from counter that was there on exit
+     */
 
+  #if defined(IS_LINUX)
+    shm->id = shmget(shm->key, shm->size, shm->perm);
+  #elif defined(IS_WINDOWS)
+    shm->id = OpenFileMapping(shm->perm, FALSE, shm->key);
   #endif
 }
 
 void shared_mem_create(shared_mem_t* shm, size_t size) {
     shm->size = size;
 
-    /* TODO: rights are too elevated. need for user to manage instead.
-     * implement `int perm` from _st_shared_mem ASAP */
-
   #if defined(IS_LINUX)
-    shm->id = shmget(shm->key, size, 0666 | IPC_CREAT);
+    shm->id = shmget(shm->key, size, shm->perm | IPC_CREAT);
   #elif defined(IS_WINDOWS)
+    /* convert perms from FILE_MAP_* to PAGE_* */
+    int pageProtection = 0x00;
+
+    if (shm->perm & SM_MODE_WRITE) { pageProtection |= PAGE_READWRITE; }
+
+    if ((shm->perm & SM_MODE_READ) && !(shm->perm & SM_MODE_WRITE)) { pageProtection |= PAGE_READONLY; }
+
     shm->id = CreateFileMapping(
         INVALID_HANDLE_VALUE, /* Use paging file */
         NULL,                 /* Default security */
-        PAGE_READWRITE,      /* Read/write access */
-        0,                   /* Maximum object size (high-order DWORD) */
-        shm->size, /* Maximum object size (low-order DWORD) */
-        shm->key /* Name of the mapping object */
+        pageProtection,
+        0,                    /* Maximum object size (high-order DWORD) */
+        shm->size,            /* Maximum object size (low-order DWORD) */
+        shm->key              /* Name of the mapping object */
     );
+
   #endif
 }
 
@@ -134,13 +140,7 @@ void shared_mem_attach(shared_mem_t* shm) {
   #if defined(IS_LINUX)
     shm->data = shmat(shm->id, NULL, 0);
   #elif defined(IS_WINDOWS)
-    shm->data = MapViewOfFile(
-        shm->id,
-        SM_MODE_FULL_ACCESS,
-        0,
-        0,
-        shm->size
-    );
+    shm->data = MapViewOfFile(shm->id, shm->perm, 0, 0, shm->size);
   #endif
 }
 

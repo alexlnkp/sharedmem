@@ -11,7 +11,7 @@
 int main() {
     /* create a unique key for the shared memory */
     key_t key = shared_mem_create_key("shmfile", 65); /* use same key as the main executable */
-    shared_mem_t* shm = shared_mem_init(key);
+    shared_mem_t* shm = shared_mem_init(key, 0b100000000);
 
     shared_mem_get(shm, sizeof(struct SharedData));  /* get shared memory */
 
