@@ -95,6 +95,7 @@ void shared_mem_remove(shared_mem_t* shm);
 
 void shared_mem_attach(shared_mem_t* shm);
 void shared_mem_detach(shared_mem_t* shm);
+void shared_mem_destroy(shared_mem_t* shm);
 
 #ifdef    SHAREDMEM_IMPLEMENTATION
 
@@ -190,6 +191,14 @@ void shared_mem_remove(shared_mem_t* shm) {
   #elif defined(IS_WINDOWS)
     CloseHandle(shm->id);
   #endif
+}
+
+void shared_mem_destroy(shared_mem_t* shm) {
+    shm->key = 0;
+    shm->id = 0;
+    shm->size = 0;
+    shm->perm = 0;
+    free(shm);
 }
 
 #endif /* SHAREDMEM_IMPLEMENTATION */

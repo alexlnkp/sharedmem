@@ -44,5 +44,7 @@ int main() {
     /* unreachable */
     shared_mem_remove(shm);
     shared_mem_detach(shm);
+    shared_mem_destroy(shm);
+
     return 0;
 }

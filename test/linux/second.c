@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include <sys/ipc.h>
 #include <sys/shm.h>
@@ -24,6 +23,7 @@ void cleanup() {
         pthread_mutex_destroy(&data->mutex);
         shared_mem_detach(shm); /* detach from shared memory */
         shared_mem_remove(shm); /* remove shared memory */
+        shared_mem_destroy(shm);
     }
 }
 
