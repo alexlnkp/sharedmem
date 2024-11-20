@@ -2,6 +2,8 @@
 #define   __SHARED_MEM_H__
 
 #if defined(_WIN32) || defined(WIN32)
+  /* maybe better to replace this to #define IS_WINDOWS 1
+   * so that i can do #if IS_WINDOWS instead of #ifdef IS_WINDOWS */
   #define IS_WINDOWS
   #include <windows.h>
 
@@ -13,6 +15,8 @@
   #endif
 
 #elif defined(__unix__) || defined(unix)
+  /* maybe better to replace this to #define IS_LINUX 1
+   * so that i can do #if IS_LINUX instead of #ifdef IS_LINUX */
   #define IS_LINUX
   #include <sys/shm.h>
   #include <pthread.h>
@@ -20,6 +24,7 @@
   typedef pthread_mutex_t __mutex_handle;
   typedef int __shared_memory_id;
 
+  /* this is pretty much unneded */
   #if !defined(__key_t_defined)
     typedef int key_t;
   #endif
@@ -61,7 +66,10 @@ struct _st_shared_mem {
     key_t key;
     size_t size;
     void* data;
-    int perm;
+    int perm; /* TODO: make permissions work. WILL be hard af because of fucking windows.
+               * ultimately will boil down to making API work with both posix octal perms
+               * and windows' PAGE_'s and FILE_MAP_'s interop... why the fuck did they do
+               * it the way they did??? what the fuck were they thinking??? */
 };
 
 key_t shared_mem_create_key(const char* name, int id) {
@@ -86,15 +94,17 @@ shared_mem_t *shared_mem_init(key_t key) {
 }
 
 void shared_mem_get(shared_mem_t* shm, size_t size) {
-    shm->size = size;
+    shm->size = size; /* setting size for windows (it will use it later) */
 
+    /* TODO: rights are too elevated. need for user to manage instead.
+     * implement `int perm` from _st_shared_mem ASAP */
   #if defined(IS_LINUX)
     shm->id = shmget(shm->key, shm->size, 0666);
   #elif defined(IS_WINDOWS)
     shm->id = OpenFileMapping(
-        SM_MODE_FULL_ACCESS, // Read access
-        FALSE,        // Do not inherit the name
-        shm->key      // Name of the mapping object
+        SM_MODE_FULL_ACCESS, /* Read access */
+        FALSE,               /* Do not inherit the name */
+        shm->key             /* Name of the mapping object */
     );
 
   #endif
@@ -102,16 +112,20 @@ void shared_mem_get(shared_mem_t* shm, size_t size) {
 
 void shared_mem_create(shared_mem_t* shm, size_t size) {
     shm->size = size;
+
+    /* TODO: rights are too elevated. need for user to manage instead.
+     * implement `int perm` from _st_shared_mem ASAP */
+
   #if defined(IS_LINUX)
     shm->id = shmget(shm->key, size, 0666 | IPC_CREAT);
   #elif defined(IS_WINDOWS)
     shm->id = CreateFileMapping(
-        INVALID_HANDLE_VALUE, // Use paging file
-        NULL,                 // Default security
-        PAGE_READWRITE,      // Read/write access
-        0,                   // Maximum object size (high-order DWORD)
-        shm->size, // Maximum object size (low-order DWORD)
-        shm->key // Name of the mapping object
+        INVALID_HANDLE_VALUE, /* Use paging file */
+        NULL,                 /* Default security */
+        PAGE_READWRITE,      /* Read/write access */
+        0,                   /* Maximum object size (high-order DWORD) */
+        shm->size, /* Maximum object size (low-order DWORD) */
+        shm->key /* Name of the mapping object */
     );
   #endif
 }

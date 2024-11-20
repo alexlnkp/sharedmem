@@ -9,6 +9,8 @@ _PLATFORMS=("win" "linux")
 CC="x86_64-w64-mingw32-gcc"
 _LINUX_CC="gcc"
 
+# C89 surprisingly works!
+
 for platform in ${_PLATFORMS[@]}; do
     mkdir -p "${_OUT_FOLDER}/${platform}"
     if [[ $platform == "linux" ]]; then CC=${_LINUX_CC}; fi
@@ -16,6 +18,6 @@ for platform in ${_PLATFORMS[@]}; do
     for filename in ${_TEST_FOLDER}/${platform}/*.c; do
         name=${filename##*/}
         base=${name%.c}
-        ${CC} "${filename}" -o "${_OUT_FOLDER}/$platform/${base}" -Iinclude
+        ${CC} -std=c89 "${filename}" -o "${_OUT_FOLDER}/$platform/${base}" -Iinclude
     done
 done

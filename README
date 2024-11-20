@@ -1,0 +1,4 @@
+sharedmem - Cross-platform shared memory single-header-library for ANSI C
+
+Pretty barebones at the moment, bugs (ESPECIALLY WITH PERMISSIONS) are expected.
+Works for Windows and POSIX Linux. Requires a C compiler with support of at the very least C89.
