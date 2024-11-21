@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <sys/ipc.h>
-#include <sys/shm.h>
 #include <unistd.h>
 
 #define SHAREDMEM_IMPLEMENTATION
@@ -30,10 +28,10 @@ int main() {
 
     while (1) {
         /* put a lock before reading */
-        pthread_mutex_lock(&data->mutex); {
+        shared_mutex_lock(&data->mutex); {
             printf("Counter from second process: %d\n", data->counter);
 
-        } pthread_mutex_unlock(&data->mutex);
+        } shared_mutex_unlock(&data->mutex);
 
         sleep(1);
     }

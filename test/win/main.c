@@ -27,9 +27,9 @@ int main() {
     }
 
     while (1) {
-        WaitForSingleObject(data->mutex, INFINITE); /* lock mutex */
+        shared_mutex_lock(&data->mutex); /* lock mutex */
         printf("Counter from second process: %d\n", data->counter);
-        ReleaseMutex(data->mutex); /* unlock mutex */
+        shared_mutex_unlock(&data->mutex); /* unlock mutex */
         Sleep(1000); /* sleep for a second */
     }
 

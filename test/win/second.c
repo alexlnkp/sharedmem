@@ -31,13 +31,14 @@ int main() {
 
     /* init data that will be shared */
     data->counter = 0;
-    data->mutex = CreateMutex(NULL, FALSE, "SharedMutex");
+    shared_mutex_init(&data->mutex);
 
     while (1) {
-        WaitForSingleObject(data->mutex, INFINITE); /* lock mutex */
-        data->counter++;
-        printf("Counter: %d\n", data->counter);
-        ReleaseMutex(data->mutex); /* unlock mutex */
+        shared_mutex_lock(&data->mutex); { /* lock mutex */
+            data->counter++;
+            printf("Counter: %d\n", data->counter);
+        } shared_mutex_unlock(&data->mutex); /* unlock mutex */
+
         Sleep(1000); /* sleep for 1 second */
     }
 
@@ -45,6 +46,7 @@ int main() {
     shared_mem_remove(shm);
     shared_mem_detach(shm);
     shared_mem_destroy(shm);
+    shared_mutex_destroy(&data->mutex);
 
     return 0;
 }

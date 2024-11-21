@@ -57,7 +57,6 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
   #include <sys/shm.h>
   #include <pthread.h>
 
-  /* TODO: add proper functions for mutex and such */
   typedef pthread_mutex_t __mutex_handle;
   typedef int __shared_memory_id;
 
@@ -73,6 +72,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 #endif
 
 typedef struct _st_shared_mem shared_mem_t;
+typedef __mutex_handle shared_mutex_t;
 
 /* TODO: make generic modes that will THEN be transformed to linux or windows modes */
 enum shared_mem_modes {
@@ -101,6 +101,11 @@ void shared_mem_remove(shared_mem_t* shm);
 void shared_mem_attach(shared_mem_t* shm);
 void shared_mem_detach(shared_mem_t* shm);
 void shared_mem_destroy(shared_mem_t* shm);
+
+void shared_mutex_init(shared_mutex_t *mutex);
+void shared_mutex_destroy(shared_mutex_t *mutex);
+void shared_mutex_lock(shared_mutex_t *mutex);
+void shared_mutex_unlock(shared_mutex_t *mutex);
 
 #ifdef    SHAREDMEM_IMPLEMENTATION
 
@@ -204,6 +209,43 @@ void shared_mem_destroy(shared_mem_t* shm) {
     shm->size = 0;
     shm->perm = 0;
     free(shm);
+}
+
+void shared_mutex_init(shared_mutex_t *mutex) {
+  #if IS_LINUX
+    /* maybe allowing user to change this could be better */
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
+    pthread_mutex_init(mutex, &attr);
+    pthread_mutexattr_destroy(&attr); /* could be bad, but works so far */
+  #elif IS_WINDOWS
+    *mutex = CreateMutex(NULL, FALSE, NULL);
+  #endif
+}
+
+void shared_mutex_destroy(shared_mutex_t *mutex) {
+  #if IS_LINUX
+    pthread_mutex_destroy(mutex);
+  #elif IS_WINDOWS
+    CloseHandle(*mutex);
+  #endif
+}
+
+void shared_mutex_lock(shared_mutex_t *mutex) {
+  #if IS_LINUX
+    pthread_mutex_lock(mutex);
+  #elif IS_WINDOWS
+    WaitForSingleObject(*mutex, INFINITE);
+  #endif
+}
+
+void shared_mutex_unlock(shared_mutex_t *mutex) {
+  #if IS_LINUX
+    pthread_mutex_unlock(mutex);
+  #elif IS_WINDOWS
+    ReleaseMutex(*mutex);
+  #endif
 }
 
 #endif /* SHAREDMEM_IMPLEMENTATION */

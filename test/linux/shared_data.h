@@ -5,7 +5,7 @@
 
 struct SharedData {
     int counter; /* something that we'll share between programs */
-    __mutex_handle mutex; /* mutex for sync */
+    shared_mutex_t mutex; /* mutex for sync */
 };
 
 #endif /* __SHARED_DATA_H__ */
