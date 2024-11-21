@@ -1,4 +1,41 @@
 sharedmem - Cross-platform shared memory single-header-library for ANSI C
 
 Pretty barebones at the moment, bugs (ESPECIALLY WITH PERMISSIONS) are expected.
-Works for Windows and POSIX Linux. Requires a C compiler with support of at the very least C89.
+Works for Windows and Linux. Requires a C compiler with support of at the very least C89.
+
+To see a complete example of two different processes (programs) communicating, refer to `test` folder.
+There, you will see three additional folders, "crossplatform", "linux" and "win". "linux" & "win" are for
+platform-specific code, so "linux" code MAY only run on linux, and "win" code MAY only run on windows.
+"crossplatform", though, provides code that behaves identical, no matter the platform (except for a few nuances).
+
+Inconsistencies between platforms at the moment:
+- if you restart the sender on linux, the reader doesn't notice
+  and still prints the last value from counter that was there on exit,
+  however, on windows, the reader immediately picks up on that writer
+  has started counting from scratch. example:
+    ON LINUX:
+      writer: counter=4
+      reader: counter=4
+      (writer gets killed)
+      writer: dead
+      reader: counter=4
+      (writer gets started again)
+      writer: counter=1
+      reader: counter=4
+      (next second)
+      writer: counter=2
+      reader: counter=4
+      (...)
+    ON WINDOWS:
+      writer: counter=4
+      reader: counter=4
+      (writer gets killed)
+      writer: dead
+      reader: counter=4
+      (writer gets started again)
+      writer: counter=1
+      reader: counter=1
+      (next second)
+      writer: counter=2
+      reader: counter=2
+      (...)
