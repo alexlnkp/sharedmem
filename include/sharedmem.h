@@ -56,6 +56,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
   #define IS_LINUX 1
   #include <sys/shm.h>
   #include <pthread.h>
+  #include <stdlib.h>
 
   typedef pthread_mutex_t __mutex_handle;
   typedef int __shared_memory_id;

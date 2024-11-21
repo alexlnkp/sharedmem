@@ -12,12 +12,19 @@ _LINUX_CC="gcc"
 # C89 surprisingly works!
 
 for platform in ${_PLATFORMS[@]}; do
-    mkdir -p "${_OUT_FOLDER}/${platform}"
+    mkdir -p "${_OUT_FOLDER}/platformspecific/${platform}"
+    mkdir -p "${_OUT_FOLDER}/crossplatform/${platform}"
     if [[ $platform == "linux" ]]; then CC=${_LINUX_CC}; fi
 
     for filename in ${_TEST_FOLDER}/${platform}/*.c; do
         name=${filename##*/}
         base=${name%.c}
-        ${CC} -std=c89 "${filename}" -o "${_OUT_FOLDER}/$platform/${base}" -Iinclude
+        ${CC} -std=c89 "${filename}" -o "${_OUT_FOLDER}/platformspecific/$platform/${base}" -Iinclude
+    done
+
+    for filename in ${_TEST_FOLDER}/crossplatform/*.c; do
+        name=${filename##*/}
+        base=${name%.c}
+        ${CC} -std=c89 "${filename}" -o "${_OUT_FOLDER}/crossplatform/$platform/${base}" -Iinclude
     done
 done
