@@ -34,26 +34,22 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 #define   __SHARED_MEM_H__
 
 #if defined(_WIN32) || defined(WIN32)
-  /* maybe better to replace this to #define IS_WINDOWS 1
-   * so that i can do #if IS_WINDOWS instead of #ifdef IS_WINDOWS */
   #define IS_WINDOWS 1
+
   #include <windows.h>
 
   typedef HANDLE __mutex_handle;
   typedef HANDLE __shared_memory_id;
 
-  #if !defined(__key_t_defined)
-    typedef const char* key_t;
-  #endif
+  typedef const char* shared_key_t;
 
   #define SM_DEFAULT_PERM SM_MODE_FULL_ACCESS
   #define SM_INVALID_ID NULL
   #define SM_INVALID_DATA NULL
 
 #elif defined(__unix__) || defined(unix)
-  /* maybe better to replace this to #define IS_LINUX 1
-   * so that i can do #if IS_LINUX instead of #ifdef IS_LINUX */
   #define IS_LINUX 1
+
   #include <sys/shm.h>
   #include <pthread.h>
   #include <stdlib.h>
@@ -61,10 +57,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
   typedef pthread_mutex_t __mutex_handle;
   typedef int __shared_memory_id;
 
-  /* this is pretty much unneded */
-  #if !defined(__key_t_defined)
-    typedef int key_t;
-  #endif
+  typedef key_t shared_key_t;
 
   #define SM_DEFAULT_PERM 0b110000000 /* -rw------- */
   #define SM_INVALID_ID -1
@@ -92,9 +85,9 @@ enum shared_mem_modes {
                           SM_MODE_EXTEND_SIZE
 };
 
-key_t shared_mem_create_key(const char* name, int id);
+shared_key_t shared_mem_create_key(const char* name, int id);
 
-shared_mem_t *shared_mem_init(key_t key, int permissions);
+shared_mem_t *shared_mem_init(shared_key_t key, int permissions);
 void shared_mem_get(shared_mem_t* shm, size_t size);
 void shared_mem_create(shared_mem_t* shm, size_t size);
 void shared_mem_remove(shared_mem_t* shm);
@@ -112,14 +105,14 @@ void shared_mutex_unlock(shared_mutex_t *mutex);
 
 struct _st_shared_mem {
     __shared_memory_id id;
-    key_t key;
+    shared_key_t key;
     size_t size;
     void* data;
     int perm;
 };
 
-key_t shared_mem_create_key(const char* name, int id) {
-    key_t key;
+shared_key_t shared_mem_create_key(const char* name, int id) {
+    shared_key_t key = 0;
 
   #if IS_WINDOWS
     key = name; /* TODO: fix id being ignored by (possibly) catting it to name */
@@ -130,7 +123,7 @@ key_t shared_mem_create_key(const char* name, int id) {
     return key;
 }
 
-shared_mem_t *shared_mem_init(key_t key, int permissions) {
+shared_mem_t *shared_mem_init(shared_key_t key, int permissions) {
     shared_mem_t *shm = malloc(sizeof(shared_mem_t));
     shm->key = key;
     shm->id = 0;

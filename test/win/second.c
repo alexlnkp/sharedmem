@@ -8,7 +8,7 @@
 
 int main() {
     /* create named file mapping */
-    key_t key = shared_mem_create_key("SharedMemoryExample", 22);
+    shared_key_t key = shared_mem_create_key("SharedMemoryExample", 22);
     shared_mem_t *shm = shared_mem_init(key, SM_DEFAULT_PERM);
 
     shared_mem_create(shm, sizeof(struct SharedData));
