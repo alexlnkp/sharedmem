@@ -36,7 +36,7 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 #if defined(_WIN32) || defined(WIN32)
   /* maybe better to replace this to #define IS_WINDOWS 1
    * so that i can do #if IS_WINDOWS instead of #ifdef IS_WINDOWS */
-  #define IS_WINDOWS
+  #define IS_WINDOWS 1
   #include <windows.h>
 
   typedef HANDLE __mutex_handle;
@@ -47,14 +47,17 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
   #endif
 
   #define SM_DEFAULT_PERM SM_MODE_FULL_ACCESS
+  #define SM_INVALID_ID NULL
+  #define SM_INVALID_DATA NULL
 
 #elif defined(__unix__) || defined(unix)
   /* maybe better to replace this to #define IS_LINUX 1
    * so that i can do #if IS_LINUX instead of #ifdef IS_LINUX */
-  #define IS_LINUX
+  #define IS_LINUX 1
   #include <sys/shm.h>
   #include <pthread.h>
 
+  /* TODO: add proper functions for mutex and such */
   typedef pthread_mutex_t __mutex_handle;
   typedef int __shared_memory_id;
 
@@ -64,6 +67,8 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
   #endif
 
   #define SM_DEFAULT_PERM 0b110000000 /* -rw------- */
+  #define SM_INVALID_ID -1
+  #define SM_INVALID_DATA (void*)-1
 
 #endif
 
@@ -110,9 +115,9 @@ struct _st_shared_mem {
 key_t shared_mem_create_key(const char* name, int id) {
     key_t key;
 
-  #if defined(IS_WINDOWS)
+  #if IS_WINDOWS
     key = name; /* TODO: fix id being ignored by (possibly) catting it to name */
-  #elif defined(IS_LINUX)
+  #elif IS_LINUX
     key = ftok(name, id);
   #endif
 
@@ -137,9 +142,9 @@ void shared_mem_get(shared_mem_t* shm, size_t size) {
      * and still prints the last value from counter that was there on exit
      */
 
-  #if defined(IS_LINUX)
+  #if IS_LINUX
     shm->id = shmget(shm->key, shm->size, shm->perm);
-  #elif defined(IS_WINDOWS)
+  #elif IS_WINDOWS
     shm->id = OpenFileMapping(shm->perm, FALSE, shm->key);
   #endif
 }
@@ -147,9 +152,9 @@ void shared_mem_get(shared_mem_t* shm, size_t size) {
 void shared_mem_create(shared_mem_t* shm, size_t size) {
     shm->size = size;
 
-  #if defined(IS_LINUX)
+  #if IS_LINUX
     shm->id = shmget(shm->key, size, shm->perm | IPC_CREAT);
-  #elif defined(IS_WINDOWS)
+  #elif IS_WINDOWS
     /* convert perms from FILE_MAP_* to PAGE_* */
     int pageProtection = 0x00;
 
@@ -170,25 +175,25 @@ void shared_mem_create(shared_mem_t* shm, size_t size) {
 }
 
 void shared_mem_attach(shared_mem_t* shm) {
-  #if defined(IS_LINUX)
+  #if IS_LINUX
     shm->data = shmat(shm->id, NULL, 0);
-  #elif defined(IS_WINDOWS)
+  #elif IS_WINDOWS
     shm->data = MapViewOfFile(shm->id, shm->perm, 0, 0, shm->size);
   #endif
 }
 
 void shared_mem_detach(shared_mem_t* shm) {
-  #if defined(IS_LINUX)
+  #if IS_LINUX
     shmdt(shm->data);
-  #elif defined(IS_WINDOWS)
+  #elif IS_WINDOWS
     UnmapViewOfFile(shm->data);
   #endif
 }
 
 void shared_mem_remove(shared_mem_t* shm) {
-  #if defined(IS_LINUX)
+  #if IS_LINUX
     shmctl(shm->id, IPC_RMID, NULL); /* remove shared memory */
-  #elif defined(IS_WINDOWS)
+  #elif IS_WINDOWS
     CloseHandle(shm->id);
   #endif
 }

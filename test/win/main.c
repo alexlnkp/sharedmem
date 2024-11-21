@@ -12,7 +12,7 @@ int main() {
 
     shared_mem_get(shm, sizeof(struct SharedData));
 
-    if (shm->id == NULL) {
+    if (shm->id == SM_INVALID_ID) {
         printf("Could not open file mapping object (%d).\n", GetLastError());
         return 1;
     }
@@ -20,7 +20,7 @@ int main() {
     shared_mem_attach(shm);
     struct SharedData* data = shm->data;
 
-    if (data == NULL) {
+    if (data == SM_INVALID_DATA) {
         printf("Could not map view of file (%d).\n", GetLastError());
         shared_mem_detach(shm);
         return 1;

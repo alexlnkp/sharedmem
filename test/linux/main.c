@@ -15,7 +15,7 @@ int main() {
 
     shared_mem_get(shm, sizeof(struct SharedData));  /* get shared memory */
 
-    if (shm->id == -1) {
+    if (shm->id == SM_INVALID_ID) {
         perror("shmget failed");
         exit(1);
     }
@@ -23,7 +23,7 @@ int main() {
     /* attach to shared memory */
     shared_mem_attach(shm);
     struct SharedData *data = shm->data;
-    if (data == (void *)-1) {
+    if (data == SM_INVALID_DATA) {
         perror("shmat failed");
         exit(1);
     }
