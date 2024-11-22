@@ -1,10 +1,12 @@
-#include <cstring>
 #include <iostream>
+#include <cstring>
+#include <cerrno>
 
 #define SHAREDMEM_IMPLEMENTATION
 #include "sharedmem.h"
 
 #include "shared_data.hpp"
+
 
 int main(void) {
     /* create a unique key for the shared memory */
