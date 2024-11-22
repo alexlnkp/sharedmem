@@ -33,6 +33,10 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 #ifndef   __SHARED_MEM_H__
 #define   __SHARED_MEM_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if defined(_WIN32) || defined(WIN32)
   #define IS_WINDOWS 1
 
@@ -124,7 +128,8 @@ shared_key_t shared_mem_create_key(const char* name, int id) {
 }
 
 shared_mem_t *shared_mem_init(shared_key_t key, int permissions) {
-    shared_mem_t *shm = malloc(sizeof(shared_mem_t));
+    /* i hate the fact that i have to do this typecasting because of c++ */
+    shared_mem_t *shm = (shared_mem_t *)malloc(sizeof(shared_mem_t));
     shm->key = key;
     shm->id = 0;
     shm->size = 0;
@@ -243,5 +248,9 @@ void shared_mutex_unlock(shared_mutex_t *mutex) {
 }
 
 #endif /* SHAREDMEM_IMPLEMENTATION */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __SHARED_MEM_H__ */
