@@ -25,7 +25,7 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTH
 DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
-/**********************************
+/**************************************
  *************** HEADER BEGINS HERE
  *********
  ****/
@@ -47,7 +47,7 @@ extern "C" {
 
   typedef const char* shared_key_t;
 
-  #define SM_DEFAULT_PERM SM_MODE_FULL_ACCESS
+  #define SM_DEFAULT_PERM FILE_MAP_ALL_ACCESS
   #define SM_INVALID_ID NULL
   #define SM_INVALID_DATA NULL
 
@@ -63,7 +63,7 @@ extern "C" {
 
   typedef key_t shared_key_t;
 
-  #define SM_DEFAULT_PERM 0b110000000 /* -rw------- */
+  #define SM_DEFAULT_PERM 0600 /* -rw------- */
   #define SM_INVALID_ID -1
   #define SM_INVALID_DATA (void*)-1
 
@@ -72,21 +72,11 @@ extern "C" {
 typedef struct _st_shared_mem shared_mem_t;
 typedef __mutex_handle shared_mutex_t;
 
-/* TODO: make generic modes that will THEN be transformed to linux or windows modes */
-enum shared_mem_modes {
-    SM_MODE_QUERY       = 1 << 0,
-    SM_MODE_WRITE       = 1 << 1,
-    SM_MODE_READ        = 1 << 2,
-    SM_MODE_EXECUTE     = 1 << 3,
-    SM_MODE_EXTEND_SIZE = 1 << 4, /* wtf does this one even do?? */
-    SM_MODE_XEXECUTE    = 1 << 5, /* execute explicit */
-    SM_MODE_STANDARD    = 0x000F0000, /* standard rights for windows bullshit */
-    SM_MODE_FULL_ACCESS = SM_MODE_STANDARD |
-                          SM_MODE_QUERY    |
-                          SM_MODE_WRITE    |
-                          SM_MODE_READ     |
-                          SM_MODE_EXECUTE  |
-                          SM_MODE_EXTEND_SIZE
+enum shared_mem_perms {
+    /* rwx */
+    SM_PERM_READ    = 1 << 2,
+    SM_PERM_WRITE   = 1 << 1,
+    SM_PERM_EXECUTE = 1 << 0,
 };
 
 shared_key_t shared_mem_create_key(const char* name, int id);
@@ -133,9 +123,14 @@ shared_mem_t *shared_mem_init(shared_key_t key, int permissions) {
     shm->key = key;
     shm->id = 0;
     shm->size = 0;
+  #if IS_LINUX
+    shm->perm = permissions * 100; /* TODO: allow for group and other perms as well somehow */
+  #elif IS_WINDOWS
+    if (permissions & SM_PERM_READ)    shm->perm |= FILE_MAP_READ;
+    if (permissions & SM_PERM_WRITE)   shm->perm |= FILE_MAP_WRITE;
+    if (permissions & SM_PERM_EXECUTE) shm->perm |= FILE_MAP_EXECUTE;
 
-    shm->perm = permissions;
-
+  #endif
     return shm;
 }
 
@@ -162,9 +157,10 @@ void shared_mem_create(shared_mem_t* shm, size_t size) {
     /* convert perms from FILE_MAP_* to PAGE_* */
     int pageProtection = 0x00;
 
-    if (shm->perm & SM_MODE_WRITE) { pageProtection |= PAGE_READWRITE; }
+    if (shm->perm & SM_PERM_WRITE)   pageProtection |= PAGE_READWRITE;
 
-    if ((shm->perm & SM_MODE_READ) && !(shm->perm & SM_MODE_WRITE)) { pageProtection |= PAGE_READONLY; }
+    if ((shm->perm & SM_PERM_READ) &&
+       !(shm->perm & SM_PERM_WRITE)) pageProtection |= PAGE_READONLY;
 
     shm->id = CreateFileMapping(
         INVALID_HANDLE_VALUE, /* Use paging file */

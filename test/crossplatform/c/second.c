@@ -38,13 +38,21 @@ int main(void) {
 
     /* create a unique key for the shared memory */
     shared_key_t key = shared_mem_create_key("shmfile", 65); /* create a unique key */
-    shm = shared_mem_init(key, SM_DEFAULT_PERM);
+    shm = shared_mem_init(key, SM_PERM_READ | SM_PERM_WRITE);
 
     shared_mem_create(shm, sizeof(struct SharedData)); /* create shared memory */
+    if (shm->id == SM_INVALID_ID) {
+        perror("shared_mem_create failed");
+        return 1;
+    }
 
     /* attach to the shared memory */
     shared_mem_attach(shm);
     data = shm->data;
+    if (data == SM_INVALID_DATA) {
+        perror("shared_mem_attach failed");
+        return 1;
+    }
 
     /* init shared data */
     data->counter = 0;
