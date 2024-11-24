@@ -1,4 +1,6 @@
 #include <iostream>
+#include <cstring>
+#include <cerrno>
 
 #include <signal.h>
 
@@ -37,13 +39,23 @@ int main(void) {
 
     /* create a unique key for the shared memory */
     shared_key_t key = shared_mem_create_key("shmfile", 65); /* create a unique key */
-    shm = shared_mem_init(key, SM_DEFAULT_PERM);
+    shm = shared_mem_init(key, SM_PERM_READ | SM_PERM_WRITE);
 
     shared_mem_create(shm, sizeof(struct SharedData)); /* create shared memory */
+    if (shm->id == SM_INVALID_ID) {
+        std::cerr << "shared_mem_create failed: " << strerror(errno) << std::endl;
+        return 1;
+    }
 
     /* attach to the shared memory */
     shared_mem_attach(shm);
     data = static_cast<struct SharedData *>(shm->data);
+    if (data == SM_INVALID_DATA) {
+        std::cerr << "shared_mem_attach failed: " << strerror(errno) << std::endl;
+        shared_mem_remove(shm);
+        shared_mem_destroy(shm);
+        return 1;
+    }
 
     /* init shared data */
     data->counter = 0;

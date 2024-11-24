@@ -51,6 +51,8 @@ int main(void) {
     data = shm->data;
     if (data == SM_INVALID_DATA) {
         perror("shared_mem_attach failed");
+        shared_mem_remove(shm);
+        shared_mem_destroy(shm);
         return 1;
     }
 

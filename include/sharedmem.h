@@ -124,7 +124,7 @@ shared_mem_t *shared_mem_init(shared_key_t key, int permissions) {
     shm->id = 0;
     shm->size = 0;
   #if IS_LINUX
-    shm->perm = permissions * 100; /* TODO: allow for group and other perms as well somehow */
+    shm->perm = permissions << 6; /* TODO: allow for group and other perms as well somehow */
   #elif IS_WINDOWS
     if (permissions & SM_PERM_READ)    shm->perm |= FILE_MAP_READ;
     if (permissions & SM_PERM_WRITE)   shm->perm |= FILE_MAP_WRITE;
