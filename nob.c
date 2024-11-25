@@ -24,7 +24,10 @@ const char* ctoplat[] = {
 
 const char* platforms[] = {"win", "linux"};
 
-const char* implementations[] = {"c", "cpp"};
+/* cpp being labeled "xx" is a way for bash autocomplections to
+ * not be confused too much. yes, it looks weird. is it faster
+ * than typing out cpp or c++ or anything like that? - yes. */
+const char* implementations[] = {"c", "xx"};
 const char* standards[] = {"-std=c89", "-std=c++98"};
 
 Nob_String_View current_compiler;
@@ -53,7 +56,7 @@ void compile_source_files(const char* parent_path, const char* out_path, const c
     for (i = 0; i < fp.count; ++i) {
         Nob_String_View input = nob_sv_from_cstr(nob_temp_sprintf("%s/%s", parent_path, fp.items[i]));
 
-        if (nob_sv_end_with(input, nob_temp_sprintf(".%s", impl))) {
+        if (nob_sv_end_with(input, nob_temp_sprintf(".%s", strcmp(impl, "xx") == 0 ? "cpp" : impl))) {
             char filename[32];
             get_basename_of_file(filename, nob_temp_sv_to_cstr(input));
 
@@ -77,16 +80,15 @@ void compile_all_tests(void) {
 
     /* this is ugly but i have no other idea how to do this with nob */
     nob_mkdir_if_not_exists(OUT_FOLDER);
-    nob_mkdir_if_not_exists(nob_temp_sprintf("%s/%s", OUT_FOLDER, CROSSPLATFORM_FOLDER_NAME));
 
     for (i = 0; i < ARR_LEN(platforms); ++i) {
         current_plat = platforms[i];
-        nob_mkdir_if_not_exists(nob_temp_sprintf("%s/%s/%s", OUT_FOLDER, CROSSPLATFORM_FOLDER_NAME, current_plat));
+        nob_mkdir_if_not_exists(nob_temp_sprintf("%s/%s", OUT_FOLDER, current_plat));
 
         for (j = 0; j < ARR_LEN(implementations); ++j) {
             current_impl = implementations[j];
             nob_mkdir_if_not_exists(
-                nob_temp_sprintf("%s/%s/%s/%s", OUT_FOLDER, CROSSPLATFORM_FOLDER_NAME, current_plat, current_impl)
+                nob_temp_sprintf("%s/%s/%s", OUT_FOLDER, current_plat, current_impl)
             );
 
             /* i'm kind of proud on how i figured out a way to make this work :) */
@@ -94,7 +96,7 @@ void compile_all_tests(void) {
 
             compile_source_files(
                 nob_temp_sprintf("%s/%s/%s", TEST_FOLDER, CROSSPLATFORM_FOLDER_NAME, current_impl),
-                nob_temp_sprintf("%s/%s/%s/%s", OUT_FOLDER, CROSSPLATFORM_FOLDER_NAME, current_plat, current_impl),
+                nob_temp_sprintf("%s/%s/%s", OUT_FOLDER, current_plat, current_impl),
                 current_impl,
                 standards[j]
             );
