@@ -234,7 +234,8 @@ void shared_mutex_init(shared_mutex_t *mutex) {
     pthread_mutex_init(mutex, &attr);
     pthread_mutexattr_destroy(&attr); /* could be bad, but works so far */
   #elif IS_WINDOWS
-    *mutex = CreateMutex(NULL, FALSE, NULL);
+    /* mutex is intended to be controlled by process that owns it */
+    *mutex = CreateMutex(NULL, TRUE, NULL);
   #endif
 }
 
