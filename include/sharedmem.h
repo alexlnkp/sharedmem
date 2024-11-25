@@ -25,6 +25,17 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTH
 DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
+/**********************************MEMORY MANAGEMENT**********************************
+ * You can choose which memory-related functions are used within the implementation  *
+ * of this library. Simply define any of the following symbols to the corresponding  *
+ * memory function that you want instead of default malloc and free.                 *
+ *                                                                                   *
+ *   !!!DEFINITION OF THE SYMBOLS MUST BE DONE BEFORE INCLUSION OF THIS LIBRARY!!!   *
+ *                                                                                   *
+ * - SM_MALLOC_FUNC - (void*) malloc(size_t)                                         *
+ * - SM_FREE_FUNC - free(void*)                                                      *
+ *************************************************************************************/
+
 /**************************************
  *************** HEADER BEGINS HERE
  *********
@@ -97,6 +108,14 @@ void shared_mutex_unlock(shared_mutex_t *mutex);
 
 #ifdef    SHAREDMEM_IMPLEMENTATION
 
+#ifndef   SM_MALLOC_FUNC
+  #define SM_MALLOC_FUNC malloc
+#endif /* SM_MALLOC_FUNC */
+
+#ifndef   SM_FREE_FUNC
+  #define SM_FREE_FUNC free
+#endif /* SM_FREE_FUNC */
+
 struct _st_shared_mem {
     __shared_memory_id id;
     shared_key_t key;
@@ -119,7 +138,7 @@ shared_key_t shared_mem_create_key(const char* name, int id) {
 
 shared_mem_t *shared_mem_init(shared_key_t key, int permissions) {
     /* i hate the fact that i have to do this typecasting because of c++ */
-    shared_mem_t *shm = (shared_mem_t *)malloc(sizeof(shared_mem_t));
+    shared_mem_t *shm = (shared_mem_t *)SM_MALLOC_FUNC(sizeof(shared_mem_t));
     shm->key = key;
     shm->id = 0;
     shm->size = 0;
@@ -203,7 +222,7 @@ void shared_mem_destroy(shared_mem_t* shm) {
     shm->id = 0;
     shm->size = 0;
     shm->perm = 0;
-    free(shm);
+    SM_FREE_FUNC(shm);
 }
 
 void shared_mutex_init(shared_mutex_t *mutex) {
