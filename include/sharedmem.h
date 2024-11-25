@@ -174,20 +174,20 @@ void shared_mem_create(shared_mem_t* shm, size_t size) {
     shm->id = shmget(shm->key, size, shm->perm | IPC_CREAT);
   #elif IS_WINDOWS
     /* convert perms from FILE_MAP_* to PAGE_* */
-    int pageProtection = 0x00;
+    int page_protection = 0x00;
 
-    if (shm->perm & SM_PERM_WRITE)   pageProtection |= PAGE_READWRITE;
+    if (shm->perm & SM_PERM_WRITE)   page_protection |= PAGE_READWRITE;
 
     if ((shm->perm & SM_PERM_READ) &&
-       !(shm->perm & SM_PERM_WRITE)) pageProtection |= PAGE_READONLY;
+       !(shm->perm & SM_PERM_WRITE)) page_protection |= PAGE_READONLY;
 
     shm->id = CreateFileMapping(
-        INVALID_HANDLE_VALUE, /* Use paging file */
-        NULL,                 /* Default security */
-        pageProtection,
-        0,                    /* Maximum object size (high-order DWORD) */
-        shm->size,            /* Maximum object size (low-order DWORD) */
-        shm->key              /* Name of the mapping object */
+        INVALID_HANDLE_VALUE, /* use paging file */
+        NULL,                 /* default security */
+        page_protection,
+        0,                    /* maximum object size (high-order DWORD) */
+        shm->size,            /* maximum object size (low-order DWORD) */
+        shm->key              /* name of the mapping object */
     );
 
   #endif
